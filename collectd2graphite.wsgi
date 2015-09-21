@@ -44,7 +44,7 @@ def application(environ, start_response):
                 metric = "collectd." + host + "." + superstring
                 if len(d['values']) > 1:
                     metric = metric + "-" + d['dsnames'][i]
-                line = '%s %f %d' % ( metric, value, gtime )
+                line = "{0} {1} {2}".format(metric, value, gtime)
                 lines.append(line)
 
 	if len(lines) > 0:
