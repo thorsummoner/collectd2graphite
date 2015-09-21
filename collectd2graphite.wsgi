@@ -25,19 +25,15 @@ def application(environ, start_response):
            
             if d['plugin_instance']:
                 pluginstring = d['plugin'] + "." + d['plugin_instance']
-                if d['type_instance']:
-                    if d['type'] == d['plugin']:
-                        typestring = d['type_instance']
-                    else:
-                        typestring = d['type'] + "-" + d['type_instance']
-                else:
-                    typestring = d['type']
             else:
                 pluginstring = d['plugin']
-                if d['type_instance']:
+            if d['type_instance']:
+                if d['type'] == d['plugin']:
+                    typestring = d['type_instance']
+		else:
                     typestring = d['type'] + "-" + d['type_instance']
-                else:
-                    typestring = d['type']
+            else:
+                typestring = d['type']
             superstring = graphiteFriendly(pluginstring + "." + typestring)
 
             for i, value in enumerate(d['values']):
