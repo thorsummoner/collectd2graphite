@@ -25,6 +25,7 @@ Sometimes all you have is an HTTP connection..
     <Plugin "write_http">
       <URL "http://collectd2graphite.endpoint:9292/collectd/post">
         Format "JSON"
+        StoreRates true
       </URL>
     </Plugin>
 

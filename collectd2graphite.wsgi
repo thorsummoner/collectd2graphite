@@ -1,5 +1,4 @@
 import os, sys, json, socket
-from cgi import parse_qs, escape
 from string import maketrans
 
 ghost = "localhost"
@@ -42,7 +41,7 @@ def application(environ, start_response):
             superstring = graphiteFriendly(pluginstring + "." + typestring)
 
             for i, value in enumerate(d['values']):
-                metric = host + "." + superstring
+                metric = "collectd." + host + "." + superstring
                 if len(d['values']) > 1:
                     metric = metric + "-" + d['dsnames'][i]
                 line = '%s %f %d' % ( metric, value, time )
