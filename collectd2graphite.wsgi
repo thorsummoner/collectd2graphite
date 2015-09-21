@@ -1,14 +1,18 @@
-import os, sys, json, socket
+import os, sys, json, socket, time
 from string import maketrans
 
 ghost = "localhost"
 gport = 2003
+tz = 'Europe/Amsterdam'
 
 def application(environ, start_response):
-    global ghost, gport
+    global ghost, gport, tz
 
     status = '200 OK'
     output = 'Thanks'
+
+    os.environ['TZ'] = tz
+    time.tzset()
 
     try:
         request_body_size = int(environ.get('CONTENT_LENGTH', '0'))
@@ -20,7 +24,7 @@ def application(environ, start_response):
 
         lines = []
         for d in data:
-            time = int(d['time'])
+            gtime = int(d['time'])
             host = d['host'].replace('.','_')
            
             if d['plugin_instance']:
@@ -40,7 +44,7 @@ def application(environ, start_response):
                 metric = "collectd." + host + "." + superstring
                 if len(d['values']) > 1:
                     metric = metric + "-" + d['dsnames'][i]
-                line = '%s %f %d' % ( metric, value, time )
+                line = '%s %f %d' % ( metric, value, gtime )
                 lines.append(line)
 
 	if len(lines) > 0:
