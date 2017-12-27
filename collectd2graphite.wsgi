@@ -26,7 +26,7 @@ def application(environ, start_response):
         for d in data:
             gtime = int(d['time'])
             host = d['host'].replace('.','_')
-           
+
             if d['plugin_instance']:
                 pluginstring = d['plugin'] + "." + d['plugin_instance']
             else:
@@ -34,7 +34,7 @@ def application(environ, start_response):
             if d['type_instance']:
                 if d['type'] == d['plugin']:
                     typestring = d['type_instance']
-		else:
+                else:
                     typestring = d['type'] + "-" + d['type_instance']
             else:
                 typestring = d['type']
@@ -47,7 +47,7 @@ def application(environ, start_response):
                 line = "{0} {1} {2}".format(metric, value, gtime)
                 lines.append(line)
 
-	if len(lines) > 0:
+        if len(lines) > 0:
             lines.append('')
 
             try:
