@@ -62,7 +62,7 @@ def application(environ, start_response):
             if connected:
                 try:
                     sock.sendall('\n'.join(lines))
-                except socket.error, e:
+                except socket.error as e:
                     status = '503 Service Unavailable'
                     connected = False
                     if isinstance(e.args, tuple):
@@ -77,7 +77,7 @@ def application(environ, start_response):
     return [output]
 
 def graphiteFriendly(s):
-    t = dict((ord(char), u'_') for char in ' ,')
+    t = dict((ord(char), '_') for char in ' ,')
     t.update(dict((ord(char), None) for char in '+()"'))
     return s.translate(t)
 
