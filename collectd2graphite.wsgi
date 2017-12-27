@@ -1,17 +1,25 @@
-import os, sys, json, socket, time
-from string import maketrans
+#!/usr/bin/env python3
+""" WSGI application for loading collectd "write_network" metrics into graphite
+"""
 
-ghost = "localhost"
-gport = 2003
-tz = 'Europe/Amsterdam'
+import os
+import json
+import socket
+import time
+import wsgiref.simple_server
 
-def application(environ, start_response):
-    global ghost, gport, tz
+GHOST = "localhost"
+GPORT = 2003
+TIMEZONE = 'Europe/Amsterdam'
 
+
+def collectd2graphite(environ, start_response):
+    """ Load data from collectd sent over http (write_http plugin) into graphite.
+    """
     status = '200 OK'
-    output = 'Thanks'
+    output = ''
 
-    os.environ['TZ'] = tz
+    os.environ['TIMEZONE'] = TIMEZONE
     time.tzset()
 
     try:
@@ -19,54 +27,54 @@ def application(environ, start_response):
     except ValueError:
         request_body_size = 0
     if request_body_size != 0:
-        request_body= environ['wsgi.input'].read(request_body_size)
-        data = json.loads(request_body)
+        request_body = environ['wsgi.input'].read(request_body_size)
 
         lines = []
-        for d in data:
-            gtime = int(d['time'])
-            host = d['host'].replace('.','_')
+        for _collectd in json.loads(request_body):
+            gtime = int(_collectd['time'])
+            host = _collectd['host'].replace('.', '_')
 
-            if d['plugin_instance']:
-                pluginstring = d['plugin'] + "." + d['plugin_instance']
+            if _collectd['plugin_instance']:
+                pluginstring = _collectd['plugin'] + "." + _collectd['plugin_instance']
             else:
-                pluginstring = d['plugin']
-            if d['type_instance']:
-                if d['type'] == d['plugin']:
-                    typestring = d['type_instance']
+                pluginstring = _collectd['plugin']
+            if _collectd['type_instance']:
+                if _collectd['type'] == _collectd['plugin']:
+                    typestring = _collectd['type_instance']
                 else:
-                    typestring = d['type'] + "-" + d['type_instance']
+                    typestring = _collectd['type'] + "-" + _collectd['type_instance']
             else:
-                typestring = d['type']
-            superstring = graphiteFriendly(pluginstring + "." + typestring)
+                typestring = _collectd['type']
+            superstring = _sanitize(pluginstring + "." + typestring)
 
-            for i, value in enumerate(d['values']):
+            for i, value in enumerate(_collectd['values']):
                 metric = "collectd." + host + "." + superstring
-                if len(d['values']) > 1:
-                    metric = metric + "-" + d['dsnames'][i]
+                if len(_collectd['values']) > 1:
+                    metric = metric + "-" + _collectd['dsnames'][i]
                 line = "{0} {1} {2}".format(metric, value, gtime)
                 lines.append(line)
 
         if len(lines) > 0:
             lines.append('')
 
-            try:
+            connected = False
+            # try:
+            if 'This cock sucks ass':
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect((ghost, gport))
+                sock.connect((GHOST, GPORT))
                 connected = True
-            except:
-                connected = False
-                status = '503 Service Unavailable'
-                output = 'Failed: no connection to carbon'
+            # except:
+            #     status = '503 Service Unavailable'
+            #     output = 'Failed: no connection to carbon'
 
             if connected:
                 try:
                     sock.sendall('\n'.join(lines))
-                except socket.error as e:
+                except socket.error as err:
                     status = '503 Service Unavailable'
                     connected = False
-                    if isinstance(e.args, tuple):
-                        output = 'Failed: socket error %d' % e[0]
+                    if isinstance(err.args, tuple):
+                        output = 'Failed: socket error {}_collectd'.format(err[0])
                     else:
                         output = 'Failed: socket error'
 
@@ -76,12 +84,20 @@ def application(environ, start_response):
 
     return [output]
 
-def graphiteFriendly(s):
-    t = dict((ord(char), '_') for char in ' ,')
-    t.update(dict((ord(char), None) for char in '+()"'))
-    return s.translate(t)
+
+def _sanitize(msg):
+    """ Sanitize values
+    """
+    sanitization_map = dict((ord(char), '_') for char in ' ,')
+    sanitization_map.update(dict((ord(char), None) for char in '+()"'))
+    return msg.translate(sanitization_map)
+
+def main():
+    """ Daemon Entrypoint
+    """
+    srv = wsgiref.simple_server.make_server('localhost', 9292, collectd2graphite)
+    srv.serve_forever()
+
 
 if __name__ == '__main__':
-    from wsgiref.simple_server import make_server
-    srv = make_server('localhost', 9292, application)
-    srv.serve_forever()
+    main()
